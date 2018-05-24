@@ -2,13 +2,11 @@ from PIL import Image
 import numpy as np
 import os
 
-def load(**kwargs):
-	start = kwargs['start']
-	end = kwargs['start']+kwargs['number']
-	size = kwargs['size']
+def load(start, number, size):
+	end = start + number
 	all_images = os.listdir("%d/gray" % size)[start:end]
-	res_gray = np.zeros((kwargs['number'], size, size, 1))
-	res_color = np.zeros((kwargs['number'], size, size, 3))
+	res_gray = np.zeros((number, size, size, 1))
+	res_color = np.zeros((number, size, size, 3))
 	for i, image in enumerate(all_images):
 		image_gray = Image.open("%d/gray/%s" % (size, image))
 		image_color = Image.open("%d/color/%s" % (size, image))
