@@ -13,7 +13,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 image_size = 32
 batch_size = 10
 lr_init = 1e-1
-n_epoch_init = 10
+n_epoch_init = 5
 n_epoch = 100
 beta1 = 0.9
 decay_round = 200
@@ -103,7 +103,7 @@ def train():
                 if idx + batch_size > total:
                     break
                 input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size)
-                errG, _ = sess.run([G_loss, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
+                errG, _ = sess.run([g_mse_loss, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, g_loss: %.8f" % (epoch, n_epoch_init, n_iter, time.time() - step_time, errG)
                 total_g_loss += errG
                 n_iter += 1
@@ -127,7 +127,7 @@ def train():
                 input_gray, input_color = func.load(
                     size=image_size, start=idx, number=batch_size)
                 # print(sess.run([logitsFake.outputs, 1 - logitsFake.outputs], feed_dict={image_gray: input_gray, image_color: input_color}))
-                errD, _ = sess.run([D_loss, D_optimizer], feed_dict={image_gray: input_gray,image_color: input_color})
+                errD, _ = sess.run([D_loss, D_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, n_iter, time.time() - step_time, errD, errG)
                 total_d_loss += errD
