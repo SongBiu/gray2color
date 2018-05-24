@@ -16,7 +16,8 @@ def network_g(*args, **kwargs):
 			nn = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 64], strides=[1, 1, 1, 1], name="r%d/c/1" % i)
 			nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="r%d/b/1" % i)
 			nn = tl.layers.PReluLayer(nn, name="r%d/prelu" % i)
-			nn = tl.layers.Conv2dLayer(nn, shape=[3, 3, 64, 64], strides=[1, 1, 1, 1], name="r%d/c/2" % i)
+            nn = tl.layers.DeConv2dLayer(net, shape=[3, 3, 64, 128], strides=[1, 1, 1, 1], name="r%d/dc/1" % i)
+			nn = tl.layers.Conv2dLayer(nn, shape=[3, 3, 128, 64], strides=[1, 1, 1, 1], name="r%d/c/2" % i)
 			nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="r%d/b/2" % i)
 			nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="r%d/add" % i)
 			net = nn
