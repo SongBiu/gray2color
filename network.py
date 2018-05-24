@@ -91,92 +91,19 @@ def Vgg19_simple_api(rgb, reuse):
         network = tl.layers.MaxPool2d(network, filter_size=(2, 2), strides=(2, 2), padding='SAME', name='pool1')
         """ conv2 """
         network = tl.layers.Conv2d(network, n_filter=128, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv2_1')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=128,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv2_2')
-        network = tl.layers.MaxPool2d(
-            network,
-            filter_size=(2, 2),
-            strides=(2, 2),
-            padding='SAME',
-            name='pool2')
+        network = tl.layers.Conv2d(network, n_filter=128, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv2_2')
+        network = tl.layers.MaxPool2d(network, filter_size=(2, 2), strides=(2, 2), padding='SAME', name='pool2')
         """ conv3 """
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=256,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv3_1')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=256,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv3_2')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=256,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv3_3')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=256,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv3_4')
-        network = tl.layers.MaxPool2d(
-            network,
-            filter_size=(2, 2),
-            strides=(2, 2),
-            padding='SAME',
-            name='pool3')
+        network = tl.layers.Conv2d(network, n_filter=256, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv3_1')
+        network = tl.layers.Conv2d(network, n_filter=256, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv3_2')
+        network = tl.layers.Conv2d(network, n_filter=256, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv3_3')
+        network = tl.layers.Conv2d(network, n_filter=256, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv3_4')
+        network = tl.layers.MaxPool2d(network, filter_size=(2, 2), strides=(2, 2), padding='SAME', name='pool3')
         """ conv4 """
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=512,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv4_1')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=512,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv4_2')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=512,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv4_3')
-        network = tl.layers.Conv2d(
-            network,
-            n_filter=512,
-            filter_size=(3, 3),
-            strides=(1, 1),
-            act=tf.nn.relu,
-            padding='SAME',
-            name='conv4_4')
+        network = tl.layers.Conv2d(network, n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv4_1')
+        network = tl.layers.Conv2d(network, n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv4_2')
+        network = tl.layers.Conv2d(network, n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv4_3')
+        network = tl.layers.Conv2d(network, n_filter=512, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, padding='SAME', name='conv4_4')
         network = tl.layers.MaxPool2d(network, filter_size=(2, 2), strides=(2, 2), padding='SAME', name='pool4')  # (batch_size, 14, 14, 512)
         conv = network
         """ conv5 """

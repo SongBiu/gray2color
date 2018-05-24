@@ -21,17 +21,15 @@ save_step = 10
 checkpoint_path = ""
 lr_decay = 0.1
 total = 0
-mode = ""
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--mode", help="choose train or eval", type=str, default="train", choices=["train", "eval"])
     parser.add_argument("-s", "--size", help="choose the size of image", type=int, default=224)
     parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=10)
     parser.add_argument("-p", "--checkpointPath", help="input the path of checkpoint", type=str, default="ckp")
     parser.add_argument("-t", "--testStep", help="the step of test", type=int, default=10)
-    parser.add_argument("-a", "--saveStep",  help="the step of save checkpoint", type=int,  default=500)
+    parser.add_argument("-a", "--saveStep",  help="the step of save checkpoint", type=int,  default=10)
     parser.add_argument("-n", "--number", help="the number of train image", type=int, default=1882)
     args = parser.parse_args()
     return args
@@ -39,16 +37,16 @@ def get_args():
 
 def cross_entropy(labels, logits):
     if labels == 1:
-        labels = tf.constant(np.ones((batch_size, 1)), dtype=tf.float32)
+        labels = tf.constant(np.array([[1.]] * batch_size), dtype=tf.float32)
     elif labels == 0:
-        labels = tf.constant(np.zeros((batch_size, 1)), dtype=tf.float32)
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+        labels = tf.constant(np.array([[0.]] * batch_size), dtype=tf.float32)
+    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
     return tf.reduce_mean(cross_entropy)
 
 
 def train():
     global image_size, batch_size, lr_init, beta1, n_epoch_init, n_epoch, lr_decay, decay_round
-    global save_step, checkpoint_path, mode
+    global save_step, checkpoint_path
     image_gray = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 1], name="image_gray")
     image_color = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 3],  name="image_color")
 
@@ -69,16 +67,16 @@ def train():
     with tf.control_dependencies(update_ops):
         D_loss = cross_entropy(0, logitsFake.outputs) + cross_entropy(1, logitsReal.outputs)
         g_gan_loss = cross_entropy(1, logitsFake.outputs)
-        g_vgg_loss = cross_entropy(vgg_real_img.outputs, vgg_fake_img.outputs)
+        g_vgg_loss = tf.reduce_mean(tf.losses.mean_squared_error(vgg_real_img.outputs, vgg_fake_img.outputs))
         g_mse_loss = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g.outputs))
-        G_loss = g_gan_loss + g_vgg_loss
+        G_loss = g_gan_loss + 1e-4*g_vgg_loss
 
         """train op"""
         G_var = tl.layers.get_variables_with_name("network_g", train_only=True, printable=False)
         D_var = tl.layers.get_variables_with_name("network_d", train_only=False, printable=False)
         with tf.variable_scope('learn_rate'):
             lr_v = tf.Variable(lr_init, trainable=False)
-        G_init_optimizer = tf.train.GradientDescentOptimizer(1e-2).minimize(g_mse_loss, var_list=G_var)
+        G_init_optimizer = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(g_mse_loss, var_list=G_var)
         D_optimizer = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(G_loss, var_list=G_var)
 
@@ -137,8 +135,11 @@ def train():
             print log
 
             if epoch != 0 and epoch % save_step == 0:
-                tl.files.save_npz(net_g.all_params, name="%s/g_%d.npz" % (checkpoint_path, mode), sess=sess)
-                tl.files.save_npz(net_d.all_params, name="%s/d_%d.npz" % (checkpoint_path, mode), sess=sess)
+                print "[*] save ! save! path=%s" % checkpoint_path
+                tl.files.save_npz(net_g.all_params, name="%s/g.npz" % checkpoint_path, sess=sess)
+                tl.files.save_npz(net_d.all_params, name="%s/d.npz" % checkpoint_path, sess=sess)
+            else:
+                print "[*] sorry.path=%s" % checkpoint_path
 
 
 def main():
@@ -149,7 +150,6 @@ def main():
     total = args.number
     checkpoint_path = args.checkpointPath
     save_step = args.saveStep
-    mode = args.mode
     train()
 
 
