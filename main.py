@@ -69,7 +69,7 @@ def train():
         g_gan_loss = cross_entropy(1, logitsFake.outputs)
         g_vgg_loss = tf.reduce_mean(tf.losses.mean_squared_error(vgg_real_img.outputs, vgg_fake_img.outputs))
         g_mse_loss = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g.outputs))
-        G_loss = g_gan_loss + 1e-4*g_vgg_loss
+        G_loss = g_gan_loss + g_vgg_loss + g_mse_loss
 
         """train op"""
         G_var = tl.layers.get_variables_with_name("network_g", train_only=True, printable=False)

@@ -19,7 +19,9 @@ def network_g(image_gray, reuse, is_train):
             nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="r%d/add" % i)
             net = nn
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 3], strides=[1, 1, 1, 1], act=tf.nn.sigmoid, name="outputs")
+        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 3], strides=[1, 1, 1, 1], act=tf.nn.relu, name="outputs")
+        net = tf.nn.tanh(net.outputs, name="tanh") * 255
+        net = tl.layers.InputLayer(inputs=net, name="output_layer")
         return net
 
 
@@ -50,7 +52,6 @@ def network_d(image_input, reuse, is_train):
 
         # net = tl.layers.DenseLayer(net, n_units=1, name="dense1/n")
         pro = tl.layers.DenseLayer(net, n_units=1, name="dense1/p")
-        print "d is", net.outputs, pro.outputs
         return net, pro
 
 
