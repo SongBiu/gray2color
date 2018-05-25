@@ -9,7 +9,7 @@ def network_g(image_gray, reuse, is_train):
         net = tl.layers.InputLayer(inputs=image_gray, name="input_layer")
         net = tl.layers.Conv2dLayer(net,shape=[3, 3, 1, 64], strides=[1, 1, 1, 1], act=tf.nn.relu, name="pre/conv")
         net = tl.layers.PReluLayer(net, name="pre/prelu")
-        for i in range(3):
+        for i in range(7):
             nn = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 64], strides=[1, 1, 1, 1], name="r%d/c/1" % i)
             nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="r%d/b/1" % i)
             nn = tl.layers.PReluLayer(nn, name="r%d/prelu" % i)
@@ -51,7 +51,7 @@ def network_d(image_input, reuse, is_train):
         net = tl.layers.DenseLayer(net, n_units=512, act=tf.nn.relu, name="dense512")
 
         # net = tl.layers.DenseLayer(net, n_units=1, name="dense1/n")
-        pro = tl.layers.DenseLayer(net, n_units=1, name="dense1/p")
+        pro = tl.layers.DenseLayer(net, n_units=1, act=tf.nn.relu, name="dense1/p")
         return net, pro
 
 

@@ -13,7 +13,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 image_size = 32
 batch_size = 10
 lr_init = 1e-1
-n_epoch_init = 5
+n_epoch_init = 10
 n_epoch = 100
 beta1 = 0.9
 decay_round = 200
@@ -67,9 +67,9 @@ def train():
     with tf.control_dependencies(update_ops):
         D_loss = cross_entropy(0, logitsFake.outputs) + cross_entropy(1, logitsReal.outputs)
         g_gan_loss = cross_entropy(1, logitsFake.outputs)
-        g_vgg_loss = tf.reduce_mean(tf.losses.mean_squared_error(vgg_real_img.outputs, vgg_fake_img.outputs))
-        g_mse_loss = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g.outputs))
-        G_loss = g_gan_loss + g_vgg_loss + g_mse_loss
+        g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
+        g_mse_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs))
+        G_loss = g_gan_loss + 1e-4*g_vgg_loss + 1e-2*g_mse_loss
 
         """train op"""
         G_var = tl.layers.get_variables_with_name("network_g", train_only=True, printable=False)
@@ -126,7 +126,7 @@ def train():
                     size=image_size, start=idx, number=batch_size)
                 # print(sess.run([logitsFake.outputs, 1 - logitsFake.outputs], feed_dict={image_gray: input_gray, image_color: input_color}))
                 errD, _ = sess.run([D_loss, D_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
-                errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
+                errG, _, _, _ = sess.run([G_loss, G_optimizer, G_optimizer, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, n_iter, time.time() - step_time, errD, errG)
                 total_d_loss += errD
                 total_g_loss += errG
