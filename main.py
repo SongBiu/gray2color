@@ -26,7 +26,7 @@ total = 0
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--size", help="choose the size of image", type=int, default=224)
-    parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=5)
+    parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=20)
     parser.add_argument("-p", "--checkpointPath", help="input the path of checkpoint", type=str, default="ckp")
     parser.add_argument("-t", "--testStep", help="the step of test", type=int, default=10)
     parser.add_argument("-a", "--saveStep",  help="the step of save checkpoint", type=int,  default=10)
@@ -44,16 +44,16 @@ def train():
     """GAN's train inference"""
     net_g = network.network_g(image_gray=image_gray, is_train=True, reuse=False)
     d_input_real = tf.concat([image_gray, image_color], axis=3)
-    d_input_fake = tf.concat([image_gray, net_g.outputs], axis=3)
+    d_input_fake = tf.concat([image_gray, net_g.outputs*255], axis=3)
     net_d, logits_real = network.network_d(image_input=d_input_real, is_train=True, reuse=False)
     _, logits_fake = network.network_d(image_input=d_input_fake, is_train=True, reuse=True)
 
     """GAN's test inference"""
-    net_g_test = network.network_g(image_gray=image_gray, is_train=False, reuse=True)
+    # net_g_test = network.network_g(image_gray=image_gray, is_train=False, reuse=True)
 
     """VGG's inference"""
-    net_vgg, vgg_real_img = network.Vgg19_simple_api((image_color+1)/2, reuse=False)
-    _, vgg_fake_img = network.Vgg19_simple_api((net_g.outputs+1)/2, reuse=True)
+    # net_vgg, vgg_real_img = network.Vgg19_simple_api(image_color/255, reuse=False)
+    # _, vgg_fake_img = network.Vgg19_simple_api(net_g.outputs, reuse=True)
 
     """loss"""
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -63,9 +63,9 @@ def train():
         d_loss_2 = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.zeros_like(logits_fake.outputs))
         D_loss = d_loss_1 + d_loss_2 - cross_entropy_loss
         g_gan_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.ones_like(logits_fake.outputs))
-        g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
-        g_mse_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs))
-        G_loss = g_gan_loss + g_vgg_loss + g_mse_loss + cross_entropy_loss
+        # g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
+        g_mse_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
+        G_loss = g_gan_loss +  g_mse_loss + cross_entropy_loss
         # G_loss = g_gan_loss + 1e-2*g_mse_loss
 
         """train op"""
@@ -73,9 +73,9 @@ def train():
         D_var = tl.layers.get_variables_with_name("network_d", train_only=False, printable=False)
         # with tf.variable_scope('learn_rate'):
             # lr_v = tf.Variable(lr_init, trainable=False)
-        # G_init_optimizer = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(g_mse_loss, var_list=G_var)
-        # D_optimizer = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(D_loss, var_list=D_var)
-        # G_optimizer = tf.train.AdamOptimizer(lr_v, beta1=beta1).minimize(G_loss, var_list=G_var)
+        # G_init_optimizer = tf.train.AdamOptimizer(lr_v).minimize(g_mse_loss, var_list=G_var)
+        # D_optimizer = tf.train.AdamOptimizer(lr_v).minimize(D_loss, var_list=D_var)
+        # G_optimizer = tf.train.AdamOptimizer(lr_v).minimize(G_loss, var_list=G_var)
         G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_mse_loss, var_list=G_var)
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
@@ -83,15 +83,15 @@ def train():
     """train"""
     with tf.Session() as sess:
         tl.layers.initialize_global_variables(sess)
-        npz = np.load("vgg19.npy", encoding='latin1').item()
-        params = []
-        for val in sorted(npz.items()):
-            W = np.asarray(val[1][0])
-            b = np.asarray(val[1][1])
-            print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
-            params.extend([W, b])
-        tl.files.assign_params(sess, params, net_vgg)
-        print "[TF]	Global Variables initialized!"
+        # npz = np.load("vgg19.npy", encoding='latin1').item()
+        # params = []
+        # for val in sorted(npz.items()):
+        #     W = np.asarray(val[1][0])
+        #     b = np.asarray(val[1][1])
+        #     print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
+        #     params.extend([W, b])
+        # tl.files.assign_params(sess, params, net_vgg)
+        # print "[TF]	Global Variables initialized!"
 
         for epoch in range(n_epoch_init):
             epoch_time = time.time()
