@@ -14,7 +14,7 @@ image_size = 32
 batch_size = 10
 lr_init = 1e-1
 n_epoch_init = 10
-n_epoch = 100
+n_epoch = 300
 beta1 = 0.9
 decay_round = 200
 save_step = 10
@@ -133,7 +133,7 @@ def train():
             log = "[*] Epoch: [%2d/%2d] time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, time.time() - epoch_time, total_d_loss / n_iter, total_g_loss / n_iter)
             print log
 
-            if epoch != 0 and epoch % save_step == 0:
+            if epoch != 0 and (epoch + 1) % save_step == 0:
                 print "[*] save ! save! path=%s" % checkpoint_path
                 tl.files.save_npz(net_g.all_params, name="%s/g.npz" % checkpoint_path, sess=sess)
                 tl.files.save_npz(net_d.all_params, name="%s/d.npz" % checkpoint_path, sess=sess)

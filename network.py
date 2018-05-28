@@ -19,7 +19,7 @@ def network_g(image_gray, reuse, is_train):
             nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="res%d/add" % i)
             net = nn
 
-        for i in range(2):
+        for i in range(4):
             net = tl.layers.Conv2d(net, n_filter=128, filter_size=(3, 3), strides=(2, 2), name="subpixel%d/c" % i)
             net = tl.layers.SubpixelConv2d(net=net, scale=2, act=tf.nn.relu, name='subpixel%d/sub' % i)
             print net.outputs.get_shape()
