@@ -25,7 +25,7 @@ total = 0
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--size", help="choose the size of image", type=int, default=224)
+    parser.add_argument("-s", "--size", help="choose the size of image", type=int, default=64)
     parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=20)
     parser.add_argument("-p", "--checkpointPath", help="input the path of checkpoint", type=str, default="ckp")
     parser.add_argument("-t", "--testStep", help="the step of test", type=int, default=10)
@@ -58,25 +58,25 @@ def train():
     """loss"""
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        cross_entropy_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, logits_real.outputs)
+        # cross_entropy_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, logits_real.outputs)
         d_loss_1 = tl.cost.sigmoid_cross_entropy(logits_real.outputs, tf.ones_like(logits_real.outputs))
         d_loss_2 = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.zeros_like(logits_fake.outputs))
-        D_loss = d_loss_1 + d_loss_2 - cross_entropy_loss
+        D_loss = d_loss_1 + d_loss_2
         g_gan_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.ones_like(logits_fake.outputs))
         # g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
-        g_mse_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
-        G_loss = g_gan_loss +  g_mse_loss + cross_entropy_loss
+        g_abs_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
+        G_loss = g_gan_loss + 1e-1*g_abs_loss
         # G_loss = g_gan_loss + 1e-2*g_mse_loss
 
         """train op"""
         G_var = tl.layers.get_variables_with_name("network_g", train_only=True, printable=False)
-        D_var = tl.layers.get_variables_with_name("network_d", train_only=False, printable=False)
+        D_var = tl.layers.get_variables_with_name("network_d", train_only=True, printable=False)
         # with tf.variable_scope('learn_rate'):
             # lr_v = tf.Variable(lr_init, trainable=False)
         # G_init_optimizer = tf.train.AdamOptimizer(lr_v).minimize(g_mse_loss, var_list=G_var)
         # D_optimizer = tf.train.AdamOptimizer(lr_v).minimize(D_loss, var_list=D_var)
         # G_optimizer = tf.train.AdamOptimizer(lr_v).minimize(G_loss, var_list=G_var)
-        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_mse_loss, var_list=G_var)
+        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_abs_loss, var_list=G_var)
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
 
@@ -101,7 +101,7 @@ def train():
                 if idx + batch_size > total:
                     break
                 input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size)
-                errG, _ = sess.run([g_mse_loss, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
+                errG, _ = sess.run([g_abs_loss, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, g_loss: %.8f" % (epoch, n_epoch_init, n_iter, time.time() - step_time, errG)
                 total_g_loss += errG
                 n_iter += 1

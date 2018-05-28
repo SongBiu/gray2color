@@ -8,7 +8,7 @@ def network_g(image_gray, reuse, is_train):
         tl.layers.set_name_reuse(reuse)
         net = tl.layers.InputLayer(inputs=image_gray, name="input_layer")
         net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="pre_conv")
-        for i in range(12):
+        for i in range(7):
             nn = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/1" % i)
             nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/1" % i)
             nn = tl.layers.PReluLayer(nn, name="res%d/prelu/1" % i)
@@ -32,10 +32,12 @@ def network_d(image_input, reuse, is_train):
     with tf.variable_scope('network_d', reuse=reuse) as vs:
         tl.layers.set_name_reuse(reuse)
         net = tl.layers.InputLayer(inputs=image_input, name="input_layer")
-        net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="pre/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(2, 2), name="pre/conv")
 
         net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="b1/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b1/b")
+
+        net = tl.layers.MaxPool2d(net, filter_size=(3, 3), strides=(2, 2), name="pool1")
 
         net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="b2/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b2/b")
@@ -43,10 +45,12 @@ def network_d(image_input, reuse, is_train):
         net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="b3/c")
         net = tl.layers.BatchNormLayer( net, is_train=is_train, act=tf.nn.relu, name="b3/b")
 
+        net = tl.layers.MaxPool2d(net, filter_size=(3, 3), strides=(2, 2), name="pool2")
+
         net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="b4/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b4/b")
 
-        net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="b5/c")
+        net = tl.layers.Conv2d(net, n_filter=16, filter_size=(3, 3), strides=(2, 2), name="b5/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b5/b")
 
         net = tl.layers.FlattenLayer(net, name="flatten")
