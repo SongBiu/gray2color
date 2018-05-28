@@ -2,26 +2,31 @@ import tensorlayer as tl
 import tensorflow as tf
 import time
 
+def activition_g(x):
+    return 255*tf.nn.tanh(x)
 
 def network_g(image_gray, reuse, is_train):
     with tf.variable_scope('network_g', reuse=reuse) as vs:
         tl.layers.set_name_reuse(reuse)
         net = tl.layers.InputLayer(inputs=image_gray, name="input_layer")
-        net = tl.layers.Conv2dLayer(net,shape=[3, 3, 1, 64], strides=[1, 1, 1, 1], act=tf.nn.relu, name="pre/conv")
-        net = tl.layers.PReluLayer(net, name="pre/prelu")
-        for i in range(7):
-            nn = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 64], strides=[1, 1, 1, 1], name="r%d/c/1" % i)
-            nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="r%d/b/1" % i)
-            nn = tl.layers.PReluLayer(nn, name="r%d/prelu" % i)
-            # nn = tl.layers.DeConv2dLayer(net, shape=[3, 3, 128, 64], output_shape=[], strides=[1, 1, 1, 1], name="r%d/dc/1" % i)
-            nn = tl.layers.Conv2dLayer(nn, shape=[3, 3, 64, 64], strides=[1, 1, 1, 1], name="r%d/c/2" % i)
-            nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="r%d/b/2" % i)
-            nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="r%d/add" % i)
+        net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="pre_conv")
+        for i in range(12):
+            nn = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/1" % i)
+            nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/1" % i)
+            nn = tl.layers.PReluLayer(nn, name="res%d/prelu/1" % i)
+            # nn = tl.layers.DeConv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
+            nn = tl.layers.Conv2d(nn, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/2" % i)
+            nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/2" % i)
+            nn = tl.layers.PReluLayer(nn, name="res%d/prelu/2" % i)
+            nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="res%d/add" % i)
             net = nn
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 3], strides=[1, 1, 1, 1], act=tf.nn.relu, name="outputs")
-        net = tf.nn.tanh(net.outputs, name="tanh") * 255
-        net = tl.layers.InputLayer(inputs=net, name="output_layer")
+        for i in range(2):
+            net = tl.layers.Conv2d(net, n_filter=128, filter_size=(3, 3), strides=(2, 2), name="subpixel%d/c" % i)
+            net = tl.layers.SubpixelConv2d(net=net, scale=2, act=tf.nn.relu, name='subpixel%d/sub' % i)
+            print net.outputs.get_shape()
+        net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="conv")
+        net = tl.layers.Conv2d(net, n_filter=3, filter_size=(3, 3), strides=(1, 1), act=activition_g, name="last")
         return net
 
 
@@ -29,28 +34,26 @@ def network_d(image_input, reuse, is_train):
     with tf.variable_scope('network_d', reuse=reuse) as vs:
         tl.layers.set_name_reuse(reuse)
         net = tl.layers.InputLayer(inputs=image_input, name="input_layer")
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 3, 16], strides=[1, 1, 1, 1], act=tf.nn.relu, name="pre/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter=(3, 3), strides=(1, 1), name="pre/conv")
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 16, 16], strides=[1, 2, 2, 1], name="b1/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter=(3, 3), strides=(1, 1), name="b1/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b1/b")
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 16, 32], strides=[1, 1, 1, 1], name="b2/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter=(3, 3), strides=(1, 1), name="b2/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b2/b")
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 32, 32], strides=[1, 2, 2, 1], name="b3/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter=(3, 3), strides=(1, 1), name="b3/c")
         net = tl.layers.BatchNormLayer( net, is_train=is_train, act=tf.nn.relu, name="b3/b")
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 32, 64], strides=[1, 1, 1, 1], name="b4/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter=(3, 3), strides=(1, 1), name="b4/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b4/b")
 
-        net = tl.layers.Conv2dLayer(net, shape=[3, 3, 64, 64], strides=[1, 2, 2, 1], name="b5/conv")
+        net = tl.layers.Conv2d(net, n_filter=16, filter=(3, 3), strides=(1, 1), name="b5/c")
         net = tl.layers.BatchNormLayer(net, is_train=is_train, act=tf.nn.relu, name="b5/b")
 
         net = tl.layers.FlattenLayer(net, name="flatten")
 
-        net = tl.layers.DenseLayer(net, n_units=512, act=tf.nn.relu, name="dense512")
-
-        # net = tl.layers.DenseLayer(net, n_units=1, name="dense1/n")
+        net = tl.layers.DenseLayer(net, n_units=256, act=tf.nn.relu, name="dense512")
         pro = tl.layers.DenseLayer(net, n_units=1, act=tf.nn.relu, name="dense1/p")
         return net, pro
 
