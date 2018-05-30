@@ -37,6 +37,8 @@ def get_args():
 def train():
     global image_size, batch_size, lr_init, beta1, n_epoch_init, n_epoch, lr_decay, decay_round
     global save_step, checkpoint_path
+    tl.files.exists_or_mkdir(checkpoint_path)
+    img_list = func.init_list(image_size)
     image_gray = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 1], name="image_gray")
     image_color = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 3],  name="image_color")
     
@@ -100,7 +102,7 @@ def train():
                 step_time = time.time()
                 if idx + batch_size > total:
                     break
-                input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size)
+                input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size, img_list=img_list)
                 errG, _ = sess.run([g_abs_loss, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, g_loss: %.8f" % (epoch, n_epoch_init, n_iter, time.time() - step_time, errG)
                 total_g_loss += errG
@@ -122,8 +124,7 @@ def train():
                 step_time = time.time()
                 if idx + batch_size > total:
                     break
-                input_gray, input_color = func.load(
-                    size=image_size, start=idx, number=batch_size)
+                input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size, img_list=img_list)
                 errD, _ = sess.run([D_loss, D_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 errG, _, _, _ = sess.run([G_loss, G_optimizer, G_optimizer, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
                 print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, n_iter, time.time() - step_time, errD, errG)

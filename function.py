@@ -1,10 +1,16 @@
 from PIL import Image
 import numpy as np
 import os
+import random
 
-def load(start, number, size):
+def init_list(size):
+	all_images = os.listdir()
+	random.shuffle(all_images)
+	return all_images
+
+def load(start, number, size, img_list):
 	end = start + number
-	all_images = os.listdir("%d/gray" % size)[start:end]
+	all_images = img_list[start:end]
 	res_gray = np.zeros((number, size, size, 1))
 	res_color = np.zeros((number, size, size, 3))
 	for i, image in enumerate(all_images):

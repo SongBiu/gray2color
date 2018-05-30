@@ -13,6 +13,7 @@ def network_g(image_gray, reuse, is_train):
             nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/1" % i)
             nn = tl.layers.PReluLayer(nn, name="res%d/prelu/1" % i)
             # nn = tl.layers.DeConv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
+            # nn = tl.layers.Conv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
             nn = tl.layers.Conv2d(nn, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/2" % i)
             nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/2" % i)
             nn = tl.layers.PReluLayer(nn, name="res%d/prelu/2" % i)
