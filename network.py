@@ -6,26 +6,47 @@ import time
 def network_g(image_gray, reuse, is_train):
     with tf.variable_scope('network_g', reuse=reuse) as vs:
         tl.layers.set_name_reuse(reuse)
-        net = tl.layers.InputLayer(inputs=image_gray, name="input_layer")
-        net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="pre_conv")
-        for i in range(7):
-            nn = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/1" % i)
-            nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/1" % i)
-            nn = tl.layers.PReluLayer(nn, name="res%d/prelu/1" % i)
-            # nn = tl.layers.DeConv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
-            # nn = tl.layers.Conv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
-            nn = tl.layers.Conv2d(nn, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/2" % i)
-            nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/2" % i)
-            nn = tl.layers.PReluLayer(nn, name="res%d/prelu/2" % i)
-            nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="res%d/add" % i)
-            net = nn
+        input_layer = tl.layers.InputLayer(inputs=image_gray, name="input_layer")
 
-        for i in range(4):
-            net = tl.layers.Conv2d(net, n_filter=128, filter_size=(3, 3), strides=(2, 2), name="subpixel%d/c" % i)
-            net = tl.layers.SubpixelConv2d(net=net, scale=2, act=tf.nn.relu, name='subpixel%d/sub' % i)
-            print net.outputs.get_shape()
-        net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="conv")
-        net = tl.layers.Conv2d(net, n_filter=3, filter_size=(3, 3), strides=(1, 1), act=tf.nn.tanh, name="last")
+        block_1 = tl.layers.Conv2d(input_layer, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="conv1")
+        block_1 = tl.layers.BatchNormLayer(block_1, is_train=is_train, name="bn1")
+        block_1 = tl.activation.leaky_relu(block_1, name="leaky_relu1")
+
+        block_2 = tl.layers.Conv2d(block_1, n_filter=32, filter_size=(3, 3), strides=(2, 2), name="conv2")
+        block_2 = tl.layers.BatchNormLayer(block_2, is_train=is_train, name="bn2")
+        block_2 = tl.activation.leaky_relu(block_2, name="leaky_relu2")
+
+        block_3 = tl.layers.Conv2d(block_2, n_filter=64, filter_size=(3, 3), strides=(2, 2), name="conv3")
+        block_3 = tl.layers.BatchNormLayer(block_3, is_train=is_train, name="bn3")
+        block_3 = tl.activation.leaky_relu(block_3, name="leaky_relu3")
+
+        block_4 = tl.layers.Conv2d(block_3, n_filter=128, filter_size=(3, 3), strides=(2, 2), name="conv4")
+        block_4 = tl.layers.BatchNormLayer(block_4, is_train=is_train, name="bn4")
+        block_4 = tl.activation.leaky_relu(block_4, name="leaky_relu4")
+
+        block_5 = tl.layers.Conv2d(block_4, n_filter=128, filter_size=(3, 3), strides=(2, 2), name="conv5")
+        block_5 = tl.layers.BatchNormLayer(block_5, is_train=is_train, name="bn5")
+        block_5 = tl.activation.leaky_relu(block_5, name="leaky_relu5")
+        
+        # net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="pre_conv")
+        # for i in range(7):
+        #     nn = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/1" % i)
+        #     nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/1" % i)
+        #     nn = tl.layers.PReluLayer(nn, name="res%d/prelu/1" % i)
+        #     # nn = tl.layers.DeConv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
+        #     # nn = tl.layers.Conv2d(nn, n_filter=128, filter_size=(3, 3), strides=(2, 2), act=tf.nn.relu, name="res%d/dc" % i)
+        #     nn = tl.layers.Conv2d(nn, n_filter=64, filter_size=(3, 3), strides=(1, 1), name="res%d/c/2" % i)
+        #     nn = tl.layers.BatchNormLayer(nn, is_train=is_train, name="res%s/b/2" % i)
+        #     nn = tl.layers.PReluLayer(nn, name="res%d/prelu/2" % i)
+        #     nn = tl.layers.ElementwiseLayer([net, nn], combine_fn=tf.add, name="res%d/add" % i)
+        #     net = nn
+
+        # for i in range(4):
+        #     net = tl.layers.Conv2d(net, n_filter=128, filter_size=(3, 3), strides=(2, 2), name="subpixel%d/c" % i)
+        #     net = tl.layers.SubpixelConv2d(net=net, scale=2, act=tf.nn.relu, name='subpixel%d/sub' % i)
+        #     print net.outputs.get_shape()
+        # net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="conv")
+        # net = tl.layers.Conv2d(net, n_filter=3, filter_size=(3, 3), strides=(1, 1), act=tf.nn.tanh, name="last")
         return net
 
 

@@ -38,7 +38,7 @@ def train():
     global image_size, batch_size, lr_init, beta1, n_epoch_init, n_epoch, lr_decay, decay_round
     global save_step, checkpoint_path
     tl.files.exists_or_mkdir(checkpoint_path)
-    img_list = func.init_list(image_size)
+    
     image_gray = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 1], name="image_gray")
     image_color = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 3],  name="image_color")
     
@@ -96,6 +96,7 @@ def train():
         # print "[TF]	Global Variables initialized!"
 
         for epoch in range(n_epoch_init):
+            img_list = func.init_list(image_size)
             epoch_time = time.time()
             n_iter, total_g_loss = 0, 0
             for idx in range(0, total, batch_size):
@@ -111,6 +112,7 @@ def train():
             print log
 
         for epoch in range(n_epoch_init, n_epoch):
+            img_list = func.init_list(image_size)
             n_iter, total_d_loss, total_g_loss = 0, 0, 0
             epoch_time = time.time()
             # if epoch != 0 and epoch % decay_round == 0:
