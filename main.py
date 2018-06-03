@@ -12,7 +12,7 @@ import argparse
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 image_size = 32
 batch_size = 10
-lr_init = 1e-1
+lr_init = 1e-2
 n_epoch_init = 10
 n_epoch = 300
 beta1 = 0.9
@@ -67,7 +67,7 @@ def train():
         g_gan_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.ones_like(logits_fake.outputs))
         # g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
         g_abs_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
-        G_loss = g_gan_loss + 1e-1*g_abs_loss
+        G_loss = g_gan_loss + 1e-2*g_abs_loss
         # G_loss = g_gan_loss + 1e-2*g_mse_loss
 
         """train op"""

@@ -4,7 +4,7 @@ import os
 import random
 
 def init_list(size):
-	all_images = os.listdir()
+	all_images = os.listdir('%d/gray' % size)
 	random.shuffle(all_images)
 	return all_images
 
