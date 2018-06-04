@@ -1,3 +1,4 @@
 *.npy
 color64/
 gray64/
+*.pyc

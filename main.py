@@ -9,7 +9,7 @@ import network
 import time
 import argparse
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 image_size = 32
 batch_size = 10
 lr_init = 1e-2
@@ -26,17 +26,18 @@ total = 0
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--size", help="choose the size of image", type=int, default=64)
-    parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=20)
+    parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=30)
     parser.add_argument("-p", "--checkpointPath", help="input the path of checkpoint", type=str, default="ckp")
     parser.add_argument("-t", "--testStep", help="the step of test", type=int, default=10)
     parser.add_argument("-a", "--saveStep",  help="the step of save checkpoint", type=int,  default=10)
-    parser.add_argument("-n", "--number", help="the number of train image", type=int, default=1882)
+    parser.add_argument("-n", "--number", help="the number of train image", type=int, default=12000)
     args = parser.parse_args()
     return args
 
 def train():
     global image_size, batch_size, lr_init, beta1, n_epoch_init, n_epoch, lr_decay, decay_round
     global save_step, checkpoint_path
+    save_cnt = 0
     tl.files.exists_or_mkdir(checkpoint_path)
     
     image_gray = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 1], name="image_gray")
@@ -138,8 +139,9 @@ def train():
 
             if epoch != 0 and (epoch + 1) % save_step == 0:
                 print "[*] save ! save! path=%s" % checkpoint_path
-                tl.files.save_npz(net_g.all_params, name="%s/g.npz" % checkpoint_path, sess=sess)
-                tl.files.save_npz(net_d.all_params, name="%s/d.npz" % checkpoint_path, sess=sess)
+                tl.files.save_npz(net_g.all_params, name="%s/g_%d.npz" % (checkpoint_path, save_cnt % 10), sess=sess)
+                tl.files.save_npz(net_d.all_params, name="%s/d_%d.npz" % (checkpoint_path, save_cnt % 10), sess=sess)
+                save_cnt += 1
             else:
                 print "[*] sorry.path=%s" % checkpoint_path
 

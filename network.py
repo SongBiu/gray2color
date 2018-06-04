@@ -70,14 +70,18 @@ def network_g(image_gray, reuse, is_train):
 		deconv1 = tl.layers.BatchNormLayer(deconv1, is_train=is_train, act=tf.nn.leaky_relu, name="d_4_bn_1")
 		deconv1 = tl.layers.ConcatLayer([conv1, deconv1], concat_dim=3, name="concat_4")
 		deconv1 = tl.layers.Conv2d(deconv1, n_filter=16, filter_size=(3, 3), strides=(1, 1), name="conv_after_deconv1")
-		# last layer before tanh, use relu (instead of leaky_relu)
-		deconv1 = tl.layers.BatchNormLayer(deconv1, is_train=is_train, act=tf.nn.relu, name="d_4_bn_2")
+		net = tl.layers.BatchNormLayer(deconv1, is_train=is_train, act=tf.nn.relu, name="d_4_bn_2")
+
+		for i in range(2):
+			net = tl.layers.Conv2d(net, n_filter=256, filter_size=(3, 3), strides=(2, 2), name="sub_%d_c" % i)
+			net = tl.layers.SubpixelConv2d(net, scale=2, act=tf.nn.relu, name="sub_%d_s" % i)
+			# net = tl.layers.ElementwiseLayer([nn, net], combine_fn=tf.add, name="sub_%d_a" %i)
+		
 		
 		# 64*64*3
-		img_out = tl.layers.Conv2d(deconv1, n_filter=3, filter_size=(3, 3), strides=(1, 1), act=tf.nn.tanh, name="img_out")
+		img_out = tl.layers.Conv2d(net, n_filter=3, filter_size=(3, 3), strides=(1, 1), act=tf.nn.tanh, name="img_out")
 		return img_out
-		# net = tl.layers.Conv2d(net, n_filter=64, filter_size=(3, 3), strides=(1, 1), act=tf.nn.relu, name="conv")
-		# net = tl.layers.Conv2d(net, n_filter=3, filter_size=(3, 3), strides=(1, 1), act=tf.nn.tanh, name="last")
+		
 
 
 
