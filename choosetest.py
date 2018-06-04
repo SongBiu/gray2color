@@ -2,7 +2,7 @@ import random
 import os
 import shutil
 
-n = 582
+n = 1815
 imgs = os.listdir("64/gray")
 ret = []
 
