@@ -12,7 +12,7 @@ import argparse
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 image_size = 32
 batch_size = 10
-lr_init = 1e-2
+lr_init = 3e-3
 n_epoch_init = 10
 n_epoch = 300
 beta1 = 0.9
@@ -54,12 +54,6 @@ def train():
     """GAN's test inference"""
     # net_g_test = network.network_g(image_gray=image_gray, is_train=False, reuse=True)
 
-    """VGG's inference"""
-    fake_224 = tf.image.resize_images(net_g.outputs, size=[224, 224], method=0)
-    real_224 = tf.image.resize_images(image_color, size=[224, 224], method=0)
-    net_vgg, vgg_real_img = network.Vgg19_simple_api((real_224+1)/2, reuse=False)
-    _, vgg_fake_img = network.Vgg19_simple_api((fake_224+1)/2, reuse=True)
-
     """loss"""
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
@@ -68,10 +62,9 @@ def train():
         d_loss_2 = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.zeros_like(logits_fake.outputs))
         D_loss = d_loss_1 + d_loss_2
         g_gan_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.ones_like(logits_fake.outputs))
-        g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
-        g_abs_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
-        G_loss = g_gan_loss + 1e-2*g_abs_loss + 1e-4*g_vgg_loss
-        # G_loss = g_gan_loss + 1e-2*g_mse_loss
+        # g_abs_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
+        g_mse_loss = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g.outputs*255))
+        G_loss = g_gan_loss + 1e-4*g_mse_loss
 
         """train op"""
         G_var = tl.layers.get_variables_with_name("network_g", train_only=True, printable=False)
@@ -81,7 +74,7 @@ def train():
         # G_init_optimizer = tf.train.AdamOptimizer(lr_v).minimize(g_mse_loss, var_list=G_var)
         # D_optimizer = tf.train.AdamOptimizer(lr_v).minimize(D_loss, var_list=D_var)
         # G_optimizer = tf.train.AdamOptimizer(lr_v).minimize(G_loss, var_list=G_var)
-        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_abs_loss, var_list=G_var)
+        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_mse_loss, var_list=G_var)
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
 
