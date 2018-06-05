@@ -1,4 +1,4 @@
 *.npy
-color64/
-gray64/
+64
 *.pyc
+*.npz

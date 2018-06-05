@@ -55,8 +55,10 @@ def train():
     # net_g_test = network.network_g(image_gray=image_gray, is_train=False, reuse=True)
 
     """VGG's inference"""
-    # net_vgg, vgg_real_img = network.Vgg19_simple_api(image_color/255, reuse=False)
-    # _, vgg_fake_img = network.Vgg19_simple_api(net_g.outputs, reuse=True)
+    fake_224 = tf.image.resize_images(net_g.outputs, size=[224, 224], method=0)
+    real_224 = tf.image.resize_images(image_color, size=[224, 224], method=0)
+    net_vgg, vgg_real_img = network.Vgg19_simple_api((real_224+1)/2, reuse=False)
+    _, vgg_fake_img = network.Vgg19_simple_api((fake_224+1)/2, reuse=True)
 
     """loss"""
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -66,9 +68,9 @@ def train():
         d_loss_2 = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.zeros_like(logits_fake.outputs))
         D_loss = d_loss_1 + d_loss_2
         g_gan_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.ones_like(logits_fake.outputs))
-        # g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
+        g_vgg_loss = tf.reduce_mean(tf.losses.absolute_difference(vgg_real_img.outputs, vgg_fake_img.outputs))
         g_abs_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
-        G_loss = g_gan_loss + 1e-2*g_abs_loss
+        G_loss = g_gan_loss + 1e-2*g_abs_loss + 1e-4*g_vgg_loss
         # G_loss = g_gan_loss + 1e-2*g_mse_loss
 
         """train op"""
@@ -86,15 +88,15 @@ def train():
     """train"""
     with tf.Session() as sess:
         tl.layers.initialize_global_variables(sess)
-        # npz = np.load("vgg19.npy", encoding='latin1').item()
-        # params = []
-        # for val in sorted(npz.items()):
-        #     W = np.asarray(val[1][0])
-        #     b = np.asarray(val[1][1])
-        #     print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
-        #     params.extend([W, b])
-        # tl.files.assign_params(sess, params, net_vgg)
-        # print "[TF]	Global Variables initialized!"
+        npz = np.load("vgg19.npy", encoding='latin1').item()
+        params = []
+        for val in sorted(npz.items()):
+            W = np.asarray(val[1][0])
+            b = np.asarray(val[1][1])
+            print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
+            params.extend([W, b])
+        tl.files.assign_params(sess, params, net_vgg)
+        print "[TF]	Global Variables initialized!"
 
         for epoch in range(n_epoch_init):
             img_list = func.init_list(image_size)
