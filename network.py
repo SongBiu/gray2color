@@ -57,22 +57,22 @@ def network_g(image_gray, reuse, is_train):
 		# 8*8*128
 		deconv4 = deconvWithBN(conv5, 128, [3,2], is_train, "4_1")
 		deconv4 = tf.concat([deconv4,conv4], axis=3)
-		deconv4 = deconvWithBN(deconv4, 128, [3,1], is_train, "4_2")
+		deconv4 = convWithBN(deconv4, 128, [3,1], is_train, "de4_2")
 		
 		# 16*16*64
 		deconv3 = deconvWithBN(deconv4, 64, [3,2], is_train, "3_1")
 		deconv3 = tf.concat([deconv3,conv3], axis=3)
-		deconv3 = deconvWithBN(deconv3, 64, [3,1], is_train, "3_2")
+		deconv3 = convWithBN(deconv3, 64, [3,1], is_train, "de3_2")
 		
 		# 32*32*32
 		deconv2 = deconvWithBN(deconv3, 32, [3,2], is_train, "2_1")
 		deconv2 = tf.concat([deconv2,conv2], axis=3)
-		deconv2 = deconvWithBN(deconv2, 32, [3,1], is_train, "2_2")
+		deconv2 = convWithBN(deconv2, 32, [3,1], is_train, "de2_2")
 		
 		# 64*64*16
 		deconv1 = deconvWithBN(deconv2, 16, [3,2], is_train, "1_1")
 		deconv1 = tf.concat([deconv1,conv1], axis=3)
-		deconv1 = deconvWithBN(deconv1, 16, [3,1], is_train, "1_2", activiation=tf.nn.relu)
+		deconv1 = convWithBN(deconv1, 16, [3,1], is_train, "de1_2", activiation=tf.nn.relu)
 		
 		img_out = tf.nn.tanh(deconv1)
 		var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "network_g")
