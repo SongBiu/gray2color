@@ -49,17 +49,16 @@ def train():
     global save_step, checkpoint_path
     save_cnt = 0
     exists_or_mkdir(checkpoint_path)
-    saver = tf.train.Saver()
     
     image_gray = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 1], name="image_gray")
     image_color = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 3],  name="image_color")
     
-    net_g, G_var = network.network_g(image_gray=image_gray, is_train=True, reuse=False)
+    net_g, G_var = network.network_g(image_gray=image_gray, is_train=True)
     
     d_input_real = tf.concat([image_gray, image_color], axis=3)
     d_input_fake = tf.concat([image_gray, net_g*255], axis=3)
-    logits_real, D_var = network.network_d(image_input=d_input_real, is_train=True, reuse=False)
-    logits_fake, _ = network.network_d(image_input=d_input_fake, is_train=True, reuse=True)
+    logits_real, D_var = network.network_d(image_input=d_input_real, is_train=True, keep_prob=0.5)
+    logits_fake, _ = network.network_d(image_input=d_input_fake, is_train=True, keep_prob=0.5, reuse=True)
 
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
@@ -79,6 +78,7 @@ def train():
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
 
+    saver = tf.train.Saver()
     """train"""
     with tf.Session() as sess:
         # pre-train for G
