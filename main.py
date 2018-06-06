@@ -2,7 +2,6 @@ import os
 import time
 import random
 import tensorflow as tf
-import tensorlayer as tl
 import function as func
 import numpy as np
 import network
@@ -10,6 +9,8 @@ import time
 import argparse
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
+
 image_size = 32
 batch_size = 10
 lr_init = 3e-3
@@ -24,6 +25,7 @@ total = 0
 
 
 def get_args():
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--size", help="choose the size of image", type=int, default=64)
     parser.add_argument("-b", "--batchSize", help="input the batch size", type=int, default=30)
@@ -34,64 +36,54 @@ def get_args():
     args = parser.parse_args()
     return args
 
+
+def exists_or_mkdir(dirname):
+    
+    if not os.path.exists(dirname):
+        os.mkdir(dirname)
+
+
 def train():
+
     global image_size, batch_size, lr_init, beta1, n_epoch_init, n_epoch, lr_decay, decay_round
     global save_step, checkpoint_path
     save_cnt = 0
-    tl.files.exists_or_mkdir(checkpoint_path)
+    exists_or_mkdir(checkpoint_path)
+    saver = tf.train.Saver()
     
     image_gray = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 1], name="image_gray")
     image_color = tf.placeholder(dtype=tf.float32, shape=[batch_size, image_size, image_size, 3],  name="image_color")
     
-
-    """GAN's train inference"""
-    net_g = network.network_g(image_gray=image_gray, is_train=True, reuse=False)
+    net_g, G_var = network.network_g(image_gray=image_gray, is_train=True, reuse=False)
+    
     d_input_real = tf.concat([image_gray, image_color], axis=3)
-    d_input_fake = tf.concat([image_gray, net_g.outputs*255], axis=3)
-    net_d, logits_real = network.network_d(image_input=d_input_real, is_train=True, reuse=False)
-    _, logits_fake = network.network_d(image_input=d_input_fake, is_train=True, reuse=True)
+    d_input_fake = tf.concat([image_gray, net_g*255], axis=3)
+    logits_real, D_var = network.network_d(image_input=d_input_real, is_train=True, reuse=False)
+    logits_fake, _ = network.network_d(image_input=d_input_fake, is_train=True, reuse=True)
 
-    """GAN's test inference"""
-    # net_g_test = network.network_g(image_gray=image_gray, is_train=False, reuse=True)
-
-    """loss"""
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        # cross_entropy_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, logits_real.outputs)
-        d_loss_1 = tl.cost.sigmoid_cross_entropy(logits_real.outputs, tf.ones_like(logits_real.outputs))
-        d_loss_2 = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.zeros_like(logits_fake.outputs))
-        D_loss = d_loss_1 + d_loss_2
-        g_gan_loss = tl.cost.sigmoid_cross_entropy(logits_fake.outputs, tf.ones_like(logits_fake.outputs))
-        # g_abs_loss = tf.reduce_mean(tf.losses.absolute_difference(image_color, net_g.outputs*255))
-        g_mse_loss = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g.outputs*255))
-        G_loss = g_gan_loss + 1e-4*g_mse_loss
+        
+        d_loss_real = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.ones_like(logits_real), logits=logits_real)
+        d_loss_fake = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.zeros_like(logits_fake), logits=logits_fake)
+        D_loss = d_loss_real + d_loss_fake
+        
+        g_loss_gan = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.ones_like(logits_fake), logits=logits_fake)
+        g_loss_mse = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g*255))
+        G_loss = g_loss_gan + 1e-4*g_loss_mse
 
-        """train op"""
-        G_var = tl.layers.get_variables_with_name("network_g", train_only=True, printable=False)
-        D_var = tl.layers.get_variables_with_name("network_d", train_only=True, printable=False)
-        # with tf.variable_scope('learn_rate'):
-            # lr_v = tf.Variable(lr_init, trainable=False)
-        # G_init_optimizer = tf.train.AdamOptimizer(lr_v).minimize(g_mse_loss, var_list=G_var)
-        # D_optimizer = tf.train.AdamOptimizer(lr_v).minimize(D_loss, var_list=D_var)
-        # G_optimizer = tf.train.AdamOptimizer(lr_v).minimize(G_loss, var_list=G_var)
-        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_mse_loss, var_list=G_var)
+        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_loss_mse, var_list=G_var)
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
 
     """train"""
     with tf.Session() as sess:
-        tl.layers.initialize_global_variables(sess)
-        npz = np.load("vgg19.npy", encoding='latin1').item()
-        params = []
-        for val in sorted(npz.items()):
-            W = np.asarray(val[1][0])
-            b = np.asarray(val[1][1])
-            print("  Loading %s: %s, %s" % (val[0], W.shape, b.shape))
-            params.extend([W, b])
-        tl.files.assign_params(sess, params, net_vgg)
-        print "[TF]	Global Variables initialized!"
-
+        # pre-train for G
         for epoch in range(n_epoch_init):
+            # shuffle
             img_list = func.init_list(image_size)
             epoch_time = time.time()
             n_iter, total_g_loss = 0, 0
@@ -100,48 +92,41 @@ def train():
                 if idx + batch_size > total:
                     break
                 input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size, img_list=img_list)
-                errG, _ = sess.run([g_abs_loss, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
-                print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, g_loss: %.8f" % (epoch, n_epoch_init, n_iter, time.time() - step_time, errG)
+                errG, _ = sess.run([g_loss_mse, G_init_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
+                print("[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, g_loss: %.8f" % (epoch, n_epoch_init, n_iter, time.time() - step_time, errG))
                 total_g_loss += errG
                 n_iter += 1
             log = "[*] Epoch: [%2d/%2d] time: %4.4fs, g_loss: %.8f" % (epoch, n_epoch_init, time.time() - epoch_time, total_g_loss / n_iter)
-            print log
+            print(log)
 
         for epoch in range(n_epoch_init, n_epoch):
+            # shuffle
             img_list = func.init_list(image_size)
             n_iter, total_d_loss, total_g_loss = 0, 0, 0
             epoch_time = time.time()
-            # if epoch != 0 and epoch % decay_round == 0:
-            #     new_lr_decay = lr_decay**(epoch // decay_round)
-            #     sess.run(tf.assign(lr_v, lr_init * new_lr_decay))
-            #     print "[TF] new learning rate: %f (for GAN)" % (lr_init * new_lr_decay)
-            # elif epoch == 0:
-                # sess.run(tf.assign(lr_v, lr_init))
-                # print "[TF] init learning rate: %f, decay_every_round: %d, lr_decay: %f (for GAN)" % (lr_init, decay_round, lr_decay)
             for idx in range(0, total, batch_size):
                 step_time = time.time()
                 if idx + batch_size > total:
                     break
                 input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size, img_list=img_list)
                 errD, _ = sess.run([D_loss, D_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
-                errG, _, _, _ = sess.run([G_loss, G_optimizer, G_optimizer, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
-                print "[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, n_iter, time.time() - step_time, errD, errG)
+                for num_of_train_for_g in range(3):
+                    errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})               
+                print("[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, n_iter, time.time() - step_time, errD, errG))
                 total_d_loss += errD
                 total_g_loss += errG
                 n_iter += 1
             log = "[*] Epoch: [%2d/%2d] time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, time.time() - epoch_time, total_d_loss / n_iter, total_g_loss / n_iter)
-            print log
+            print(log)
 
             if epoch != 0 and (epoch + 1) % save_step == 0:
-                print "[*] save ! save! path=%s" % checkpoint_path
-                tl.files.save_npz(net_g.all_params, name="%s/g_%d.npz" % (checkpoint_path, save_cnt % 10), sess=sess)
-                tl.files.save_npz(net_d.all_params, name="%s/d_%d.npz" % (checkpoint_path, save_cnt % 10), sess=sess)
+                print("[*] save ! path=%s" % checkpoint_path)
+                saver.save(sess, checkpoint_path, global_step=save_cnt)
                 save_cnt += 1
-            else:
-                print "[*] sorry.path=%s" % checkpoint_path
 
 
 def main():
+
     global image_size, batch_size, total, save_step, checkpoint_path
     args = get_args()
     image_size = args.size
@@ -153,4 +138,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
