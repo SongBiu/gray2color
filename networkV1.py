@@ -112,8 +112,9 @@ def network_d(image_input, reuse, is_train):
 
 		net = tl.layers.FlattenLayer(net, name="flatten")
 
-		net = tl.layers.DropconnectDenseLayer(net, keep=0.5, n_units=256, act=tf.nn.relu, name="dense512")
-		pro = tl.layers.DenseLayer(net, n_units=1, act=tf.nn.relu, name="dense1/p")
+		net = tl.layers.DenseLayer(net, n_units=256, act=tf.nn.relu, name="dense512")
+		net = tl.layers.DropconnectDenseLayer(net, keep=0.5, is_train=is_train, name="dropout")
+		pro = tl.layers.DenseLayer(net, n_units=1, name="dense1/p")
 		return net, pro
 
 
