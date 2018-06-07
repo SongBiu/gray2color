@@ -4,17 +4,9 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import network
-import sys
 
-
-if sys.argv[2] == 'train':
-	name = "./64/gray/%s.png" % sys.argv[1]
-else:
-	name = "./64/test/gray/%s.png" % sys.argv[1]
 
 x = np.zeros((1, 64, 64, 1))
-image = np.array(Image.open(name))
-x[0, :, :, 0] = image[:, :]
 
 image_gray = tf.placeholder(dtype=tf.float32, shape=[1, 64, 64, 1])
 image_color = tf.placeholder(dtype=tf.float32, shape=[1, 64, 64, 3])
@@ -29,10 +21,16 @@ sess = tf.Session()
 saver = tf.train.Saver()
 saver.restore(sess, "ckp1/model-9")
 
-x_out = sess.run(net_g*255, feed_dict={image_gray: x})
-# print mat.shape
-image = np.zeros((64, 64, 3))
-image[:, :, :] = x_out[0, :, : ,:]
-image = image.astype(np.int32).astype(np.uint8)
-out = Image.fromarray(image)
-out.save('./64/test/result/'+sys.argv[1]+'-9.png')
+imgs = os.path.listdir("./64/test/gray")
+for img in imgs:
+
+	image = np.array(Image.open(img))
+	x[0, :, :, 0] = image[:, :]
+	x_out = sess.run(net_g*255, feed_dict={image_gray: x})
+
+	image = np.zeros((64, 64, 3))
+	image[:, :, :] = x_out[0, :, : ,:]
+
+	image = image.astype(np.int32).astype(np.uint8)
+	out = Image.fromarray(image)
+	out.save('./64/test/result/'+img)

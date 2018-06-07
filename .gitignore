@@ -1,7 +1,5 @@
 *.npy
 64
-vgg
-hasNovgg
-.vscode
+ckp*
 *.pyc
 *.npz

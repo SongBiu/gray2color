@@ -8,7 +8,7 @@ import network
 import time
 import argparse
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 image_size = 32
@@ -72,13 +72,13 @@ def train():
         g_loss_gan = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
             labels=tf.ones_like(logits_fake), logits=logits_fake))
         g_loss_mse = tf.losses.mean_squared_error(image_color, net_g*255)
-        G_loss = g_loss_gan + 3e-4*g_loss_mse
+        G_loss = g_loss_gan + 5e-4*g_loss_mse
 
         G_init_optimizer = tf.train.AdadeltaOptimizer(0.1).minimize(g_loss_mse, var_list=G_var)
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
 
-    saver = tf.train.Saver(var_list=G_var, max_to_keep=10)
+    saver = tf.train.Saver(max_to_keep=10)
     """train"""
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -123,7 +123,9 @@ def train():
 
             if epoch != 0 and (epoch + 1) % save_step == 0:
                 print("[*] save ! path=%s" % checkpoint_path)
-                saver.save(sess, "./"+checkpoint_path, global_step=save_cnt)
+                with open("log.txt","a") as losslog:
+                	losslog.write(log+"\n")
+                saver.save(sess, "./"+checkpoint_path+"/model", global_step=save_cnt)
                 save_cnt += 1
 
 
