@@ -63,24 +63,25 @@ def train():
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         
-        d_loss_real = tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=tf.ones_like(logits_real), logits=logits_real)
-        d_loss_fake = tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=tf.zeros_like(logits_fake), logits=logits_fake)
+        d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.ones_like(logits_real), logits=logits_real))
+        d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.zeros_like(logits_fake), logits=logits_fake))
         D_loss = d_loss_real + d_loss_fake
         
-        g_loss_gan = tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=tf.ones_like(logits_fake), logits=logits_fake)
-        g_loss_mse = tf.reduce_mean(tf.losses.mean_squared_error(image_color, net_g*255))
-        G_loss = g_loss_gan + 1e-4*g_loss_mse
+        g_loss_gan = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=tf.ones_like(logits_fake), logits=logits_fake))
+        g_loss_mse = tf.losses.mean_squared_error(image_color, net_g*255)
+        G_loss = g_loss_gan + 3e-4*g_loss_mse
 
-        G_init_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(g_loss_mse, var_list=G_var)
+        G_init_optimizer = tf.train.AdadeltaOptimizer(0.1).minimize(g_loss_mse, var_list=G_var)
         D_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(D_loss, var_list=D_var)
         G_optimizer = tf.train.AdadeltaOptimizer(lr_init).minimize(G_loss, var_list=G_var)
 
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(var_list=G_var, max_to_keep=10)
     """train"""
     with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
         # pre-train for G
         for epoch in range(n_epoch_init):
             # shuffle
@@ -110,8 +111,9 @@ def train():
                     break
                 input_gray, input_color = func.load(size=image_size, start=idx, number=batch_size, img_list=img_list)
                 errD, _ = sess.run([D_loss, D_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
-                for num_of_train_for_g in range(3):
-                    errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})               
+                errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
+                errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})
+                errG, _ = sess.run([G_loss, G_optimizer], feed_dict={image_gray: input_gray, image_color: input_color})       
                 print("[TF] Epoch [%2d/%2d] %4d  time: %4.4fs, d_loss: %.8f g_loss: %.8f" % (epoch, n_epoch, n_iter, time.time() - step_time, errD, errG))
                 total_d_loss += errD
                 total_g_loss += errG
@@ -121,7 +123,7 @@ def train():
 
             if epoch != 0 and (epoch + 1) % save_step == 0:
                 print("[*] save ! path=%s" % checkpoint_path)
-                saver.save(sess, checkpoint_path, global_step=save_cnt)
+                saver.save(sess, "./"+checkpoint_path, global_step=save_cnt)
                 save_cnt += 1
 
 
