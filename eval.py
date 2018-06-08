@@ -27,7 +27,7 @@ logits_fake, _ = network.network_d(image_input=d_input_fake, is_train=False, kee
 
 sess = tf.Session()
 saver = tf.train.Saver()
-saver.restore(sess, "ckp1/model-9")
+saver.restore(sess, "ckp3/model-24")
 
 x_out = sess.run(net_g*255, feed_dict={image_gray: x})
 # print mat.shape
@@ -35,4 +35,4 @@ image = np.zeros((64, 64, 3))
 image[:, :, :] = x_out[0, :, : ,:]
 image = image.astype(np.int32).astype(np.uint8)
 out = Image.fromarray(image)
-out.save('./64/test/result/'+sys.argv[1]+'-9.png')
+out.save('./64/test/result/'+sys.argv[1]+'-24.png')
