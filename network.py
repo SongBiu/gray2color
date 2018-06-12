@@ -1,9 +1,31 @@
-import tensorlayer as tl
 import tensorflow as tf
 import time
 
 
-def network_g(image_gray, reuse, is_train):
+def convWithBN(inputs, channels, shape, is_train, nameid, activation=tf.nn.leaky_relu):
+
+	conv = tf.layers.conv2d(inputs=inputs, filters=channels, kernel_size=shape[0], 
+		strides=shape[1], padding="same", activation=activation, name="conv"+nameid)
+	
+	conv = tf.layers.batch_normalization(inputs=conv, trainable=True, training=is_train,
+		name="bnAfterConv"+nameid)
+
+	return conv
+
+
+def deconvWithBN(inputs, channels, shape, is_train, nameid, activation=tf.nn.leaky_relu):
+	
+	deconv = tf.layers.conv2d_transpose(inputs=inputs, filters=channels, kernel_size=shape[0], 
+		strides=shape[1], padding="same", activation=activation, name="deconv"+nameid)
+
+	deconv = tf.layers.batch_normalization(inputs=deconv, trainable=True, training=is_train,
+		name="bnAfterDeconv"+nameid)
+
+	return deconv
+
+
+def network_g(image_gray, is_train, reuse=None):
+
 	with tf.variable_scope('network_g', reuse=reuse) as vs:
 		tl.layers.set_name_reuse(reuse)
 		net = tl.layers.InputLayer(inputs=image_gray, name="input_layer")
@@ -31,9 +53,8 @@ def network_g(image_gray, reuse, is_train):
 		return net
 		
 
+def network_d(image_input, is_train, keep_prob, reuse=None):
 
-
-def network_d(image_input, reuse, is_train):
 	with tf.variable_scope('network_d', reuse=reuse) as vs:
 		tl.layers.set_name_reuse(reuse)
 		net = tl.layers.InputLayer(inputs=image_input, name="input_layer")
